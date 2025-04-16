@@ -149,52 +149,47 @@ export default function SetupFarmacia() {
 
   // *** useEffect SECUNDARIO: Carga de Ventas y Productos Populares (depende de farmacia.id_farmacia) ***
   useEffect(() => {
-      let isMounted = true;
-      if (farmacia?.id_farmacia) {
-          // console.log("Farmacia ID exists, fetching ventas...");
-          const loadVentas = async () => {
-              try {
-                  // Ajusta la consulta si las ventas se relacionan directamente con id_farmacia
-                  const { data: ventasData, error: ventasError } = await supabase
-                      .from('ventas')
-                      // Asegúrate que 'id_farmacia' exista en tu tabla 'ventas' o ajusta la consulta
-                       .eq('id_farmacia', farmacia.id_farmacia)
-                      .select('*')
-                      .order('created_at', { ascending: false })
-                      .limit(20); // Limitar número de ventas iniciales
+    if (!farmacia?.id_farmacia) return;
 
-                  if(ventasError) throw ventasError;
+    let isMounted = true;
 
-                  // console.log("Ventas fetched: ", ventasData?.length);
-                  if (isMounted) {
-                      const validVentas = ventasData || [];
-                      setVentas(validVentas);
-                      if (validVentas.length > 0) {
-                          analizarProductosPopulares(validVentas);
-                      } else {
-                          setProductosPopulares([]); // Limpiar si no hay ventas
-                      }
-                  }
-              } catch(error) {
-                  console.error("Error loading ventas:", error);
-                  if(isMounted) {
-                      setVentas([]); // Limpiar ventas en caso de error
-                      setProductosPopulares([]);
-                  }
-              }
-          };
-          loadVentas();
-      } else {
-          // Si no hay farmacia ID, limpiar ventas y productos
-          // console.log("No Farmacia ID, clearing ventas.");
-          if (isMounted) {
-              setVentas([]);
-              setProductosPopulares([]);
-          }
-      }
-      return () => { isMounted = false };
-  // Depende explícitamente del ID de la farmacia. Si farmacia cambia a null, esto se re-evaluará.
-  }, [farmacia?.id_farmacia]);
+    const loadVentas = async () => {
+        try {
+            console.log("Cargando ventas para farmacia:", farmacia.id_farmacia);
+            const { data: ventasData, error: ventasError } = await supabase
+                .from('ventas')
+                .select('*')
+                .eq('id_farmacia', Number(farmacia.id_farmacia))
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (ventasError) throw ventasError;
+
+            console.log("Ventas recibidas:", ventasData);
+
+            if (isMounted) {
+                const validVentas = ventasData || [];
+                setVentas(validVentas);
+                if (validVentas.length > 0) {
+                    analizarProductosPopulares(validVentas);
+                } else {
+                    setProductosPopulares([]);
+                }
+            }
+        } catch (error) {
+            console.error("Error al cargar ventas:", error);
+            if (isMounted) {
+                setVentas([]);
+                setProductosPopulares([]);
+            }
+        }
+    };
+
+    loadVentas();
+
+    return () => { isMounted = false };
+}, [farmacia?.id_farmacia]);
+
 
 
   // *** useEffect TERCERO: Carga de Trabajadores (depende de farmacia.id_farmacia) ***
