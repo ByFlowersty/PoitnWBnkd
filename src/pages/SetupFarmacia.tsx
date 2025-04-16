@@ -158,7 +158,7 @@ export default function SetupFarmacia() {
                   const { data: ventasData, error: ventasError } = await supabase
                       .from('ventas')
                       // Asegúrate que 'id_farmacia' exista en tu tabla 'ventas' o ajusta la consulta
-                      // .eq('id_farmacia', farmacia.id_farmacia)
+                       .eq('id_farmacia', farmacia.id_farmacia)
                       .select('*')
                       .order('created_at', { ascending: false })
                       .limit(20); // Limitar número de ventas iniciales
