@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, type ChangeEvent, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import supabase from "../lib/supabaseClient"
@@ -76,7 +74,7 @@ export default function Login() {
           navigate("/paciente")
           break
         case "doctor":
-          navigate("/doctor/consultas")
+          navigate("/doctor")
           break
         case "farmaceutico":
           navigate("/farmaceutico")
