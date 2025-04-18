@@ -9,6 +9,7 @@ import Interfaz_Pacinte from './pages/paciente_interfaz';
 import Interfaz_Farmaceutico from './pages/Interfaz_Farmaceutico';
 import Interfaz_Doctor from './pages/Doctor_interfaz';
 
+
 function App() {
   // Add a key with timestamp to force component refresh
   const timestamp: number = Date.now();
@@ -22,7 +23,7 @@ function App() {
         <Route path="/setup_farmacia" element={<SetupFarmacia />} />
         <Route path="/Paciente" element={<Interfaz_Pacinte key={timestamp} />} />
         <Route path="/farmaceutico" element={<Interfaz_Farmaceutico key={timestamp} />} />
-        <Route path="/doctor" element={<Interfaz_Doctor key={timestamp} />} />
+        <Route path="/Doctor" element={<Interfaz_Doctor key={timestamp} />} />
        {/*  
         
         <Route path="/pricing" element={<Pricing />} />
