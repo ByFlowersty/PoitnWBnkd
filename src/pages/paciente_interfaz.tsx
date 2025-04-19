@@ -5,14 +5,13 @@ import {
   Package2,
   FileText,
   Clock,
-  Search,
   Sunrise,
   CloudRain,
-  QrCode
+  QrCode,
+  User
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import Barcode from 'react-barcode';
-
 import Header from '../components/paciente/Header';
 import ContentPanel from '../components/paciente/ContentPanel';
 import supabase from '../lib/supabaseClient';
@@ -26,6 +25,95 @@ const Paciente_Interfaz: React.FC = () => {
   const [showQR, setShowQR] = useState<boolean>(false);
   const [showBarcode, setShowBarcode] = useState<boolean>(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState<boolean>(false);
+  const [user, setUser] = useState<any>(null);
+  const [showPatientForm, setShowPatientForm] = useState<boolean>(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    date_of_birth: '',
+    gender: '',
+    phone: ''
+  });
+
+  // Verificar autenticación y datos del paciente
+  useEffect(() => {
+    const checkAuthAndPatientData = async () => {
+      try {
+        setLoading(true);
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !authUser) {
+          // Redirigir a login si no está autenticado
+          window.location.href = '/login';
+          return;
+        }
+        
+        setUser(authUser);
+        
+        // Verificar si existe en la tabla patients
+        const { data: patient, error: patientError } = await supabase
+          .from('patients')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .single();
+          
+        if (patientError || !patient) {
+          setShowPatientForm(true);
+          setLoading(false);
+          return;
+        }
+        
+        setPatientData(patient);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error checking auth and patient data:', error);
+        setLoading(false);
+      }
+    };
+    
+    checkAuthAndPatientData();
+  }, []);
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!user) return;
+      
+      const { error } = await supabase
+        .from('patients')
+        .insert({
+          user_id: user.id,
+          email: user.email,
+          name: formData.name,
+          date_of_birth: formData.date_of_birth,
+          gender: formData.gender,
+          phone: formData.phone,
+          created_at: new Date().toISOString()
+        });
+        
+      if (error) throw error;
+      
+      // Refrescar datos del paciente
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      setPatientData(patient);
+      setShowPatientForm(false);
+    } catch (error) {
+      console.error('Error saving patient data:', error);
+      alert('Error al guardar los datos del paciente');
+    }
+  };
 
   const generateLoyaltyCode = async () => {
     setIsGeneratingCode(true);
@@ -55,31 +143,6 @@ const Paciente_Interfaz: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchPatientData();
-  }, []);
-
-  const fetchPatientData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      setPatientData(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching patient data:', error);
-      setLoading(false);
-    }
-  };
-
   const [weatherData, setWeatherData] = useState({
     temp: 0,
     condition: '',
@@ -101,8 +164,8 @@ const Paciente_Interfaz: React.FC = () => {
           const data = await response.json();
           
           // Weather code mapping for conditions
-          const getWeatherCondition = (code) => {
-            const conditions = {
+          const getWeatherCondition = (code: number) => {
+            const conditions: Record<number, string> = {
               0: 'Despejado',
               1: 'Mayormente despejado',
               2: 'Parcialmente nublado',
@@ -133,7 +196,7 @@ const Paciente_Interfaz: React.FC = () => {
           console.error('Error fetching weather data:', error);
           setWeatherData(prev => ({
             ...prev,
-            temp: '--',
+            temp: 0,
             condition: 'No disponible',
             location: 'Error',
             day: new Date().toLocaleDateString('es-ES', { weekday: 'long' })
@@ -143,27 +206,91 @@ const Paciente_Interfaz: React.FC = () => {
     }
   }, []);
 
-  const [healthOverview] = useState({
-    nextAppointment: {
-      date: patientData?.proxima_consulta ? new Date(patientData.proxima_consulta).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'No programada',
-      time: '14:30',
-      tipo_de_cita: '_'
-    },
-    medicationDue: {
-      count: 2,
-      nextTime: 'Hoy a las 19:00'
-    },
-    weather: {
-      temp: 26,
-      condition: 'Lluvia',
-      location: 'CDMX',
-      day: 'Martes'
-    }
-  });
-
   const handleViewChange = (view: string) => {
     setCurrentView(view);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (showPatientForm) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-md p-8 max-w-md w-full">
+          <div className="flex items-center justify-center mb-6">
+            <User className="h-10 w-10 text-primary mr-2" />
+            <h2 className="text-2xl font-bold text-gray-800">Completa tu perfil</h2>
+          </div>
+          
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo*</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleFormChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de nacimiento</label>
+              <input
+                type="date"
+                name="date_of_birth"
+                value={formData.date_of_birth}
+                onChange={handleFormChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleFormChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Seleccionar...</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+                <option value="Prefiero no decir">Prefiero no decir</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleFormChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              >
+                Guardar información
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -252,7 +379,7 @@ const Paciente_Interfaz: React.FC = () => {
                           {patientData?.proxima_consulta ? new Date(patientData.proxima_consulta).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'No programada'}
                         </h2>
                         <p className="text-xs text-gray-500 mt-1">
-                          {healthOverview.nextAppointment.time} - {healthOverview.nextAppointment.doctor}
+                          {patientData?.proxima_consulta ? new Date(patientData.proxima_consulta).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'}) : ''}
                         </p>
                       </div>
                       <div className="h-10 w-10 bg-gradient-to-br from-accent to-accent/80 rounded-full flex items-center justify-center">
@@ -284,6 +411,7 @@ const Paciente_Interfaz: React.FC = () => {
               <ContentPanel
                 view={currentView}
                 onClose={() => handleViewChange('home')}
+                patientData={patientData}
               />
               
               {/* Loyalty Code Card - Only show in profile view */}
@@ -308,9 +436,9 @@ const Paciente_Interfaz: React.FC = () => {
                           />
                         </div>
                       )}
-                      {showBarcode && patientData?.surecode && (
+                      {showBarcode && (patientData?.surecode || loyaltyCode) && (
                         <div className="p-4 bg-white rounded-lg shadow-sm">
-                          <Barcode value={patientData.surecode} width={1.5} height={50} />
+                          <Barcode value={patientData?.surecode || loyaltyCode} width={1.5} height={50} />
                         </div>
                       )}
                       {!patientData?.surecode && !loyaltyCode && (
@@ -338,7 +466,12 @@ const Paciente_Interfaz: React.FC = () => {
                         </button>
                       )}
 
-                     
+                      <button
+                        onClick={() => setShowQR((prev) => !prev)}
+                        className="px-4 py-2 bg-primary/10 text-primary rounded-lg"
+                      >
+                        {showQR ? 'Ocultar código QR' : 'Ver código QR'}
+                      </button>
 
                       <button
                         onClick={() => setShowBarcode((prev) => !prev)}
