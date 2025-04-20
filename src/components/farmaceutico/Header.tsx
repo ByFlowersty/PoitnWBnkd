@@ -25,7 +25,7 @@ const Header: React.FC<HeaderProps> = ({ currentDateTime, pharmacyName }) => {
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2 font-bold text-xl">
-          <img src="/src/pages/logo.png" alt="CareLux Logo" className="w-10 h-10" />
+          <img src="/logo.png" alt="CareLux Logo" className="w-10 h-10" />
           {pharmacyName && <span className="text-[#4d7c6f]">{pharmacyName}</span>}
         </div>
 
