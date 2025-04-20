@@ -341,7 +341,7 @@ const Paciente_Interfaz: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center">
             <img 
-              src="/logo.svg" 
+              src="/logo.png" 
               alt="Logo" 
               className="h-10 w-auto"
             />
