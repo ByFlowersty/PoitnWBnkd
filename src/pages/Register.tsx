@@ -165,7 +165,7 @@ export default function Register() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 mb-4">
-          <img src="/src/pages/logo.png" alt="Carelux Point Logo" width="128" height="128" className="opacity-90" />
+          <img src="/logo.png" alt="Carelux Point Logo" width="128" height="128" className="opacity-90" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Carelux Point</h1>
           <p className="text-gray-500 mt-1">Registrate es gratis</p>
