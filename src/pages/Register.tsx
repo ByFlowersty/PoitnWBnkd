@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, type ChangeEvent, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import supabase from "../lib/supabaseClient"
@@ -230,7 +228,7 @@ export default function Register() {
                       id="nombre_completo"
                       name="nombre_completo"
                       type="text"
-                      placeholder="Ej: María González"
+        
                       required
                       value={formData.nombre_completo}
                       onChange={handleChange}
@@ -260,15 +258,17 @@ export default function Register() {
                     </label>
                     <div className="relative">
                       <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        minLength={6}
-                        required
-                        value={formData.password}
-                        onChange={handleChange}
-                      />
+                       id="password"
+                       name="password"
+                       type={showPassword ? "text" : "password"}
+                       placeholder="••••••••"
+                       minLength={8}
+                       required
+                       value={formData.password}
+                      onChange={handleChange}
+                      pattern="^(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+                       title="La contraseña debe tener al menos 8 caracteres y un carácter especial"
+/                    >
                       <button
                         type="button"
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
@@ -436,13 +436,13 @@ export default function Register() {
           <p>© {new Date().getFullYear()} Carelux Point. Todos los derechos reservados.</p>
           <div className="flex justify-center space-x-4 mt-2">
             <Link to="/terms" className="hover:text-emerald-600">
-              Términos
+              
             </Link>
             <Link to="/privacy" className="hover:text-emerald-600">
-              Privacidad
+            
             </Link>
             <Link to="/help" className="hover:text-emerald-600">
-              Ayuda
+          
             </Link>
           </div>
         </div>
