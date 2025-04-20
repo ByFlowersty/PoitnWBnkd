@@ -8,9 +8,10 @@ import {
   Sunrise,
   CloudRain,
   QrCode,
+  Menu,
+  X,
   User
 } from 'lucide-react';
-import QRCode from 'qrcode';
 import Barcode from 'react-barcode';
 import Header from '../components/paciente/Header';
 import ContentPanel from '../components/paciente/ContentPanel';
@@ -22,9 +23,10 @@ const Paciente_Interfaz: React.FC = () => {
   const [patientData, setPatientData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [loyaltyCode, setLoyaltyCode] = useState<string>('');
-  const [showQR, setShowQR] = useState<boolean>(false);
   const [showBarcode, setShowBarcode] = useState<boolean>(false);
   const [isGeneratingCode, setIsGeneratingCode] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [showPatientForm, setShowPatientForm] = useState<boolean>(false);
   const [formData, setFormData] = useState({
@@ -64,6 +66,7 @@ const Paciente_Interfaz: React.FC = () => {
         
         setPatientData(patient);
         setLoading(false);
+        fetchAppointments();
       } catch (error) {
         console.error('Error checking auth and patient data:', error);
         setLoading(false);
@@ -109,6 +112,7 @@ const Paciente_Interfaz: React.FC = () => {
         
       setPatientData(patient);
       setShowPatientForm(false);
+      fetchAppointments();
     } catch (error) {
       console.error('Error saving patient data:', error);
       alert('Error al guardar los datos del paciente');
@@ -140,6 +144,25 @@ const Paciente_Interfaz: React.FC = () => {
       alert('Error al generar el código de fidelización');
     } finally {
       setIsGeneratingCode(false);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_id', user.id)
+        .order('appointment_date', { ascending: true });
+
+      if (error) throw error;
+
+      setAppointments(data || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
     }
   };
 
@@ -208,6 +231,24 @@ const Paciente_Interfaz: React.FC = () => {
 
   const handleViewChange = (view: string) => {
     setCurrentView(view);
+    setMobileMenuOpen(false);
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No programada';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // Format time for display
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '--:--';
+    return timeString;
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
   };
 
   if (loading) {
@@ -295,13 +336,35 @@ const Paciente_Interfaz: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ToastProvider />
-      <Header patientName={patientData?.nombre_completo || patientData?.name} />
+      <div className="bg-white shadow-sm sticky top-0 z-30">
+        {/* Simplified Header without notification and settings buttons */}
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center">
+            <img 
+              src="/logo.svg" 
+              alt="Logo" 
+              className="h-10 w-auto"
+            />
+            <h1 className="ml-3 text-xl font-semibold text-gray-900 hidden sm:block">
+              {patientData?.nombre_completo || patientData?.name || 'Paciente'}
+            </h1>
+          </div>
+          
+          {/* Mobile menu button */}
+          <button 
+            className="p-2 rounded-md text-gray-500 hover:text-gray-600 sm:hidden"
+            onClick={toggleMobileMenu}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
+      </div>
       
-      <main className="flex-1 py-6">
+      <main className="flex-1 pt-4 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Sidebar - Navigation */}
-            <div className="lg:col-span-2 bg-white rounded-xl shadow-md border-r border-gray-100">
+            {/* Left Sidebar - Navigation (Desktop) */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-md border-r border-gray-100 hidden sm:block">
               <div className="sticky top-24 p-4 space-y-2">
                 <button 
                   className={`w-full flex items-center space-x-3 p-3 ${currentView === 'home' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
@@ -345,8 +408,111 @@ const Paciente_Interfaz: React.FC = () => {
               </div>
             </div>
           
+            {/* Mobile Menu Overlay */}
+            {mobileMenuOpen && (
+              <div className="fixed inset-0 z-20 bg-black bg-opacity-25 sm:hidden" onClick={toggleMobileMenu}>
+                <div className="fixed inset-y-0 left-0 max-w-xs w-full bg-white shadow-xl z-30" onClick={e => e.stopPropagation()}>
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-medium text-gray-900">
+                        {patientData?.nombre_completo || patientData?.name || 'Paciente'}
+                      </h2>
+                      <button 
+                        className="p-2 rounded-md text-gray-500" 
+                        onClick={toggleMobileMenu}
+                      >
+                        <X className="h-6 w-6" />
+                      </button>
+                    </div>
+                  </div>
+                  <nav className="px-2 py-4 space-y-1">
+                    <button 
+                      className={`w-full flex items-center space-x-3 p-3 ${currentView === 'home' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
+                      onClick={() => handleViewChange('home')}
+                    >
+                      <Home className="h-5 w-5" />
+                      <span className={currentView === 'home' ? "font-medium" : ""}>Inicio</span>
+                    </button>
+                    
+                    <button 
+                      className={`w-full flex items-center space-x-3 p-3 ${currentView === 'appointments' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
+                      onClick={() => handleViewChange('appointments')}
+                    >
+                      <CalendarIcon className="h-5 w-5" />
+                      <span className={currentView === 'appointments' ? "font-medium" : ""}>Calendario</span>
+                    </button>
+                    
+                    <button 
+                      className={`w-full flex items-center space-x-3 p-3 ${currentView === 'medications' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
+                      onClick={() => handleViewChange('medications')}
+                    >
+                      <FileText className="h-5 w-5" />
+                      <span className={currentView === 'medications' ? "font-medium" : ""}>Recetas</span>
+                    </button>
+                    
+                    <button 
+                      className={`w-full flex items-center space-x-3 p-3 ${currentView === 'pharmacies' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
+                      onClick={() => handleViewChange('pharmacies')}
+                    >
+                      <Package2 className="h-5 w-5" />
+                      <span className={currentView === 'pharmacies' ? "font-medium" : ""}>Farmacias</span>
+                    </button>
+
+                    <button 
+                      className={`w-full flex items-center space-x-3 p-3 ${currentView === 'profile' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
+                      onClick={() => handleViewChange('profile')}
+                    >
+                      <QrCode className="h-5 w-5" />
+                      <span className={currentView === 'profile' ? "font-medium" : ""}>Perfil</span>
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile Bottom Navigation Bar */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10 sm:hidden">
+              <div className="grid grid-cols-5 h-16">
+                <button 
+                  className={`flex flex-col items-center justify-center ${currentView === 'home' ? 'text-primary' : 'text-gray-600'}`}
+                  onClick={() => handleViewChange('home')}
+                >
+                  <Home className="h-5 w-5" />
+                  <span className="text-xs mt-1">Inicio</span>
+                </button>
+                <button 
+                  className={`flex flex-col items-center justify-center ${currentView === 'appointments' ? 'text-primary' : 'text-gray-600'}`}
+                  onClick={() => handleViewChange('appointments')}
+                >
+                  <CalendarIcon className="h-5 w-5" />
+                  <span className="text-xs mt-1">Citas</span>
+                </button>
+                <button 
+                  className={`flex flex-col items-center justify-center ${currentView === 'medications' ? 'text-primary' : 'text-gray-600'}`}
+                  onClick={() => handleViewChange('medications')}
+                >
+                  <FileText className="h-5 w-5" />
+                  <span className="text-xs mt-1">Recetas</span>
+                </button>
+                <button 
+                  className={`flex flex-col items-center justify-center ${currentView === 'pharmacies' ? 'text-primary' : 'text-gray-600'}`}
+                  onClick={() => handleViewChange('pharmacies')}
+                >
+                  <Package2 className="h-5 w-5" />
+                  <span className="text-xs mt-1">Farmacias</span>
+                </button>
+                <button 
+                  className={`flex flex-col items-center justify-center ${currentView === 'profile' ? 'text-primary' : 'text-gray-600'}`}
+                  onClick={() => handleViewChange('profile')}
+                >
+                  <QrCode className="h-5 w-5" />
+                  <span className="text-xs mt-1">Perfil</span>
+                </button>
+              </div>
+            </div>
+          
             {/* Main Content Area */}
-            <div className="lg:col-span-10 space-y-6">
+            <div className="lg:col-span-10 space-y-6 pb-20 sm:pb-0">
               {/* Top Cards Row - Solo visible en home */}
               {currentView === 'home' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -376,10 +542,10 @@ const Paciente_Interfaz: React.FC = () => {
                       <div>
                         <p className="text-sm text-gray-500 font-medium">Próxima cita</p>
                         <h2 className="text-xl font-bold text-gray-800 font-inter">
-                          {patientData?.proxima_consulta ? new Date(patientData.proxima_consulta).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'No programada'}
+                          {patientData?.proxima_consulta ? formatDate(patientData.proxima_consulta) : 'No programada'}
                         </h2>
                         <p className="text-xs text-gray-500 mt-1">
-                          {patientData?.proxima_consulta ? new Date(patientData.proxima_consulta).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'}) : ''}
+                          Consulta {patientData?.tipo_consulta || 'general'}
                         </p>
                       </div>
                       <div className="h-10 w-10 bg-gradient-to-br from-accent to-accent/80 rounded-full flex items-center justify-center">
@@ -407,12 +573,74 @@ const Paciente_Interfaz: React.FC = () => {
                 </div>
               )}
 
+              {/* Appointments table - visible only in home view */}
+              {currentView === 'home' && (
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                  <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                    <h3 className="text-lg font-medium text-gray-900">Próximas citas</h3>
+                    <button 
+                      className="text-primary text-sm font-medium hover:text-primary/80"
+                      onClick={() => handleViewChange('appointments')}
+                    >
+                      Ver todas
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Fecha
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Hora
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tipo
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Doctor
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {appointments.length > 0 ? (
+                          appointments.slice(0, 3).map((appointment, index) => (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatDate(appointment.appointment_date)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {formatTime(appointment.appointment_time)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {appointment.tipo_consulta || 'General'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {appointment.doctor_name || 'Dr. Asignado'}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="px-6 py-4 text-sm text-gray-500 text-center">
+                              No hay citas programadas
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {/* Content Panel - Siempre visible */}
-              <ContentPanel
-                view={currentView}
-                onClose={() => handleViewChange('home')}
-                patientData={patientData}
-              />
+              {currentView !== 'home' && (
+                <ContentPanel
+                  view={currentView}
+                  onClose={() => handleViewChange('home')}
+                />
+              )}
               
               {/* Loyalty Code Card - Only show in profile view */}
               {currentView === 'profile' && (
@@ -426,19 +654,15 @@ const Paciente_Interfaz: React.FC = () => {
                     </div>
                     
                     <div className="flex flex-col items-center justify-center space-y-4">
-                      {showQR && (patientData?.surecode || loyaltyCode) && (
-                        <div className="p-4 bg-white rounded-lg shadow-sm">
-                          <QRCode
-                            value={patientData?.surecode || loyaltyCode}
-                            size={128}
-                            level="H"
-                            includeMargin={true}
-                          />
-                        </div>
-                      )}
                       {showBarcode && (patientData?.surecode || loyaltyCode) && (
-                        <div className="p-4 bg-white rounded-lg shadow-sm">
-                          <Barcode value={patientData?.surecode || loyaltyCode} width={1.5} height={50} />
+                        <div className="p-4 bg-white rounded-lg shadow-sm overflow-hidden">
+                          <Barcode 
+                            value={patientData?.surecode || loyaltyCode} 
+                            width={1.5} 
+                            height={50}
+                            margin={5}
+                            displayValue={true}
+                          />
                         </div>
                       )}
                       {!patientData?.surecode && !loyaltyCode && (
@@ -448,8 +672,8 @@ const Paciente_Interfaz: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex space-x-4 justify-center">
-                      {!patientData?.surecode && (
+                    <div className="flex flex-wrap gap-4 justify-center">
+                      {(!patientData?.surecode && !loyaltyCode) && (
                         <button
                           onClick={generateLoyaltyCode}
                           disabled={isGeneratingCode}
@@ -461,24 +685,64 @@ const Paciente_Interfaz: React.FC = () => {
                               <span>Generando...</span>
                             </>
                           ) : (
-                            <span>Generar surecode</span>
+                            <span>Generar código</span>
                           )}
                         </button>
                       )}
 
-                      <button
-                        onClick={() => setShowQR((prev) => !prev)}
-                        className="px-4 py-2 bg-primary/10 text-primary rounded-lg"
-                      >
-                        {showQR ? 'Ocultar código QR' : 'Ver código QR'}
-                      </button>
+                      {(patientData?.surecode || loyaltyCode) && (
+                        <button
+                          onClick={() => setShowBarcode((prev) => !prev)}
+                          className="px-4 py-2 bg-primary/10 text-primary rounded-lg"
+                        >
+                          {showBarcode ? 'Ocultar código de barras' : 'Ver código de barras'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                      <button
-                        onClick={() => setShowBarcode((prev) => !prev)}
-                        className="px-4 py-2 bg-primary/10 text-primary rounded-lg"
-                      >
-                        {showBarcode ? 'Ocultar código de barras' : 'Ver código de barras'}
-                      </button>
+              {/* Patient profile information - Only show in profile view */}
+              {currentView === 'profile' && (
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      Información personal
+                    </h3>
+                  </div>
+                  <div className="px-6 py-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Nombre completo</p>
+                        <p className="text-base text-gray-900">
+                          {patientData?.nombre_completo || patientData?.name || 'No disponible'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Fecha de nacimiento</p>
+                        <p className="text-base text-gray-900">
+                          {patientData?.date_of_birth ? formatDate(patientData.date_of_birth) : 'No disponible'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Correo electrónico</p>
+                        <p className="text-base text-gray-900">
+                          {patientData?.email || user?.email || 'No disponible'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Teléfono</p>
+                        <p className="text-base text-gray-900">
+                          {patientData?.phone || 'No disponible'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Género</p>
+                        <p className="text-base text-gray-900">
+                          {patientData?.gender || 'No disponible'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
