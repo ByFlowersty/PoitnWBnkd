@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import {
   Menu,
@@ -24,7 +22,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur">
         <div className="container mx-auto px-4 flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl text-[#4d7c6f]">
-            <img src="/src/pages/logo.png" alt="Carelux Point" className="h-10 w-10" />
+            <img src="/logo.png" alt="Carelux Point" className="h-10 w-10" />
             <span>Carelux Point</span>
           </div>
           
@@ -84,9 +82,14 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="w-full py-16 md:py-24 lg:py-32 bg-gradient-to-br from-white via-[#f5f2e8] to-[#e8f0ed]">
-          <div className="container mx-auto px-4">
+        {/* Hero Section with Diagonal Split */}
+        <section className="w-full py-16 md:py-24 lg:py-32 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[#4d7c6f] z-0 transform -skew-y-6 origin-top-right"></div>
+            <div className="absolute inset-0 bg-white z-0"></div>
+          </div>
+          
+          <div className="container mx-auto px-4 relative z-10">
             <div className="grid gap-12 lg:grid-cols-2 items-center">
               <div className="flex flex-col justify-center space-y-6">
                 <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#4d7c6f]/10 text-[#4d7c6f] text-sm font-medium">
@@ -118,22 +121,11 @@ export default function LandingPage() {
                   <span>Seguridad avanzada y cumplimiento normativo</span>
                 </div>
               </div>
-              <div className="flex justify-center lg:justify-end">
+              <div className="flex justify-center lg:justify-end relative">
                 <div className="relative w-full max-w-[550px] aspect-video rounded-2xl overflow-hidden shadow-xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#4d7c6f]/30 to-[#4d7c6f]/10 flex items-center justify-center">
-                    <img src="/src/pages/logo.png" alt="Carelux Point Logo" width="150" height="150" className="drop-shadow-lg" />
-                  </div>
-                  <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#4d7c6f] flex items-center justify-center text-white">
-                        <Stethoscope className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">CARELUX</h3>
-                        <p className="text-sm text-gray-600">Conectando a todos los actores del ecosistema médico</p>
-                      </div>
-                    </div>
-                  </div>
+                  <img src="/src/pages/logo.png" alt="Carelux Point Logo" className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 drop-shadow-lg z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#4d7c6f] to-[#6b9c8f] opacity-20"></div>
+                  <div className="absolute inset-0 bg-[url('/pattern.svg')] bg-repeat opacity-10"></div>
                 </div>
               </div>
             </div>
@@ -164,7 +156,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Interfaces Section */}
+        {/* Interfaces Section with Modern Cards */}
         <section id="interfaces" className="w-full py-16 md:py-24 bg-gray-50">
           <div className="container mx-auto px-4">
             <div className="flex flex-col items-center text-center mb-16">
@@ -182,16 +174,13 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {/* Admin Interface */}
-              <div className="rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                <div className="p-1 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]">
-                  <div className="bg-white p-6 rounded-t-lg">
-                    <div className="w-14 h-14 rounded-xl bg-[#4d7c6f]/10 flex items-center justify-center mb-4">
-                      <LineChart className="h-7 w-7 text-[#4d7c6f]" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Interfaz del Administrador</h3>
-                  </div>
-                </div>
+              <div className="rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                <div className="h-2 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]"></div>
                 <div className="p-6">
+                  <div className="w-14 h-14 rounded-full bg-[#4d7c6f]/10 flex items-center justify-center mb-4 group-hover:bg-[#4d7c6f]/20 transition-colors">
+                    <LineChart className="h-7 w-7 text-[#4d7c6f]" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Interfaz del Administrador</h3>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3">
                       <CheckCircle className="h-5 w-5 text-[#4d7c6f] flex-shrink-0 mt-0.5" />
@@ -210,16 +199,13 @@ export default function LandingPage() {
               </div>
 
               {/* Pharmacist Interface */}
-              <div className="rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                <div className="p-1 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]">
-                  <div className="bg-white p-6 rounded-t-lg">
-                    <div className="w-14 h-14 rounded-xl bg-[#4d7c6f]/10 flex items-center justify-center mb-4">
-                      <Pill className="h-7 w-7 text-[#4d7c6f]" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Interfaz del Farmacéutico</h3>
-                  </div>
-                </div>
+              <div className="rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                <div className="h-2 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]"></div>
                 <div className="p-6">
+                  <div className="w-14 h-14 rounded-full bg-[#4d7c6f]/10 flex items-center justify-center mb-4 group-hover:bg-[#4d7c6f]/20 transition-colors">
+                    <Pill className="h-7 w-7 text-[#4d7c6f]" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Interfaz del Farmacéutico</h3>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3">
                       <CheckCircle className="h-5 w-5 text-[#4d7c6f] flex-shrink-0 mt-0.5" />
@@ -238,16 +224,13 @@ export default function LandingPage() {
               </div>
 
               {/* Doctor Interface */}
-              <div className="rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                <div className="p-1 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]">
-                  <div className="bg-white p-6 rounded-t-lg">
-                    <div className="w-14 h-14 rounded-xl bg-[#4d7c6f]/10 flex items-center justify-center mb-4">
-                      <Stethoscope className="h-7 w-7 text-[#4d7c6f]" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Interfaz del Médico</h3>
-                  </div>
-                </div>
+              <div className="rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                <div className="h-2 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]"></div>
                 <div className="p-6">
+                  <div className="w-14 h-14 rounded-full bg-[#4d7c6f]/10 flex items-center justify-center mb-4 group-hover:bg-[#4d7c6f]/20 transition-colors">
+                    <Stethoscope className="h-7 w-7 text-[#4d7c6f]" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Interfaz del Médico</h3>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3">
                       <CheckCircle className="h-5 w-5 text-[#4d7c6f] flex-shrink-0 mt-0.5" />
@@ -266,16 +249,13 @@ export default function LandingPage() {
               </div>
 
               {/* Patient Interface */}
-              <div className="rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                <div className="p-1 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]">
-                  <div className="bg-white p-6 rounded-t-lg">
-                    <div className="w-14 h-14 rounded-xl bg-[#4d7c6f]/10 flex items-center justify-center mb-4">
-                      <UserCircle className="h-7 w-7 text-[#4d7c6f]" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Interfaz del Paciente</h3>
-                  </div>
-                </div>
+              <div className="rounded-xl bg-white shadow-md hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                <div className="h-2 bg-gradient-to-r from-[#4d7c6f] to-[#6b9c8f]"></div>
                 <div className="p-6">
+                  <div className="w-14 h-14 rounded-full bg-[#4d7c6f]/10 flex items-center justify-center mb-4 group-hover:bg-[#4d7c6f]/20 transition-colors">
+                    <UserCircle className="h-7 w-7 text-[#4d7c6f]" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-4">Interfaz del Paciente</h3>
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3">
                       <CheckCircle className="h-5 w-5 text-[#4d7c6f] flex-shrink-0 mt-0.5" />
@@ -296,9 +276,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="w-full py-16 bg-[#4d7c6f]">
-          <div className="container mx-auto px-4">
+        {/* CTA Section with Diagonal Split */}
+        <section className="w-full py-16 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-white z-0"></div>
+            <div className="absolute inset-0 bg-[#4d7c6f] z-0 transform skew-y-6 origin-bottom-left"></div>
+          </div>
+          <div className="container mx-auto px-4 relative z-10">
             <div className="flex flex-col items-center text-center">
               <h2 className="text-3xl font-bold text-white mb-6">
                 Comience a transformar su práctica médica hoy
@@ -307,7 +291,7 @@ export default function LandingPage() {
                 Únase a miles de profesionales médicos que ya confían en Carelux Point para la gestión de prescripciones
               </p>
               <a href="/register">
-                <button className="inline-flex items-center justify-center rounded-md font-medium bg-white text-[#4d7c6f] h-12 px-8 hover:bg-gray-100 transition-colors">
+                <button className="inline-flex items-center justify-center rounded-md font-medium bg-white text-[#4d7c6f] h-12 px-8 hover:bg-gray-100 transition-colors shadow-md">
                   Comenzar prueba gratuita
                 </button>
               </a>
