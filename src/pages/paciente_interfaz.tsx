@@ -24,17 +24,10 @@ import {
     AlertTriangle, // Para errores
 } from 'lucide-react';
 import Barcode from 'react-barcode';
-// NOTA: Asumiendo que Header y ContentPanel no son necesarios si todo está en este archivo ahora,
-//       pero si son componentes externos, mantén sus imports.
-// import Header from '../components/paciente/Header';
-// import ContentPanel from '../components/paciente/ContentPanel';
+import Header from '../components/paciente/Header';
+import ContentPanel from '../components/paciente/ContentPanel';
 import supabase from '../lib/supabaseClient';
-// --- CORRECCIÓN 1: Importar useToast junto con ToastProvider ---
-// (Asumiendo que useToast se exporta desde el mismo archivo)
-import ToastProvider, { useToast } from '../components/providers/ToastProvider';
-// Si useToast está en otro archivo (ej: '../hooks/useToast'), importa desde ahí:
-// import ToastProvider from '../components/providers/ToastProvider';
-// import { useToast } from '../hooks/useToast';
+import ToastProvider from '../components/providers/ToastProvider';
 
 
 // --- Variables de Entorno (Ejemplo con Vite) ---
