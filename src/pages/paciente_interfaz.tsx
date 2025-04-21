@@ -24,10 +24,10 @@ import {
   AlertTriangle, // Para errores
 } from 'lucide-react';
 import Barcode from 'react-barcode';
-import ContentPanel from '../components/paciente/ContentPanel'; // Ajusta la ruta si es necesario
-import supabase from '../lib/supabaseClient'; // Asegúrate que la configuración aquí es correcta
-import ToastProvider, { useToast } from '../components/providers/ToastProvider'; // Asumiendo que tienes useToast
-// import EREBUS from '../components/paciente/EREBUS'; // EREBUS se maneja dentro de ContentPanel
+import Header from '../components/paciente/Header';
+import ContentPanel from '../components/paciente/ContentPanel';
+import supabase from '../lib/supabaseClient';
+import ToastProvider from '../components/providers/ToastProvider';
 
 // --- Variables de Entorno (Ejemplo con Vite) ---
 // Debes crear un archivo .env en la raíz de tu proyecto con estos valores:
