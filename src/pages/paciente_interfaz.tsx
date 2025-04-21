@@ -27,7 +27,7 @@ import Barcode from 'react-barcode';
 import Header from '../components/paciente/Header';
 import ContentPanel from '../components/paciente/ContentPanel';
 import supabase from '../lib/supabaseClient';
-import ToastProvider from '../components/providers/ToastProvider';
+import {ToastProvider} from '../components/providers/ToastProvider';
 
 
 // --- Variables de Entorno (Ejemplo con Vite) ---
