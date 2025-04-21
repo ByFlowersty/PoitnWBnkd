@@ -24,7 +24,9 @@ const NEW_SECONDARY_ACCENT = "#7dd3fc"; // A slightly different, brighter blue (
 
 // Function to convert hex to RGB for RGBA usage
 const hexToRgb = (hex) => {
-  const bigint = parseInt(hex.slice(1), 16);
+  // Remove '#' if present
+  const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+  const bigint = parseInt(cleanHex, 16);
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
@@ -33,6 +35,7 @@ const hexToRgb = (hex) => {
 
 const newPrimaryRgb = hexToRgb(NEW_PRIMARY_COLOR);
 const newPrimaryLightRgb = hexToRgb(NEW_PRIMARY_LIGHT);
+const newPrimaryDarkRgb = hexToRgb(NEW_PRIMARY_DARK); // <<<--- ADDED THIS LINE
 const newSecondaryAccentRgb = hexToRgb(NEW_SECONDARY_ACCENT);
 
 
@@ -90,7 +93,7 @@ const darkColors = {
 
 
 // --- Button Styles (Updated Focus Rings) ---
-const btnBase = `inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transform hover:-translate-y-0.5 active:translate-y-0 dark:focus-visible:ring-offset-gray-900`; // NOTE: dark mode offset might need adjustment based on actual dark bg
+const btnBase = `inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transform hover:-translate-y-0.5 active:translate-y-0 dark:focus-visible:ring-offset-slate-900`; // Updated dark offset
 
 // Use RGBA values directly for focus rings in base classes for reliability
 const btnPrimary = `${btnBase} text-white h-11 px-7 shadow-[0_4px_10px_-1px] dark:shadow-[0_4px_10px_-1px] border focus-visible:ring-[rgba(${newPrimaryRgb},0.6)] dark:focus-visible:ring-[rgba(${newPrimaryLightRgb},0.7)]`;
@@ -141,7 +144,8 @@ export default function LandingPage() {
   const primaryBtnStyle = React.useMemo(() => ({
     background: `linear-gradient(to bottom right, ${currentColors.primaryLight}, ${currentColors.primary})`,
     color: isDarkMode ? darkColors.textHeading : colors.white, // Adjusted text color for dark mode button
-    borderColor: `rgba(${isDarkMode ? newPrimaryLightRgb : newPrimaryDark }, 0.3)`, // Use correct RGB for border based on mode
+    // --- CORRECTED THIS LINE ---
+    borderColor: `rgba(${isDarkMode ? newPrimaryLightRgb : newPrimaryDarkRgb }, 0.3)`, // Use newPrimaryDarkRgb
     boxShadow: `0 4px 10px -1px ${currentColors.deepShadow}, inset 0 1px 1px ${currentColors.lightSource}`,
     focusVisibleRingOffset: isDarkMode ? darkColors.offWhite : colors.offWhite
   }), [isDarkMode, currentColors]);
