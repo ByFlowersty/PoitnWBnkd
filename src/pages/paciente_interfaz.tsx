@@ -17,6 +17,7 @@ import Header from '../components/paciente/Header';
 import ContentPanel from '../components/paciente/ContentPanel';
 import supabase from '../lib/supabaseClient';
 import ToastProvider from '../components/providers/ToastProvider';
+import EREBUS from '../components/paciente/EREBUS';
 
 const Paciente_Interfaz: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('home');
@@ -449,6 +450,16 @@ const Paciente_Interfaz: React.FC = () => {
                       <FileText className="h-5 w-5" />
                       <span className={currentView === 'medications' ? "font-medium" : ""}>Recetas</span>
                     </button>
+
+                    <button 
+                      className={`w-full flex items-center space-x-3 p-3 ${currentView === 'EREBUS' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
+                      onClick={() => handleViewChange('EREBUS')}
+                    >
+                      <FileText className="h-5 w-5" />
+                      <span className={currentView === 'EREBUS' ? "font-medium" : ""}>EREBUS</span>
+                    </button>
+
+
                     
                     <button 
                       className={`w-full flex items-center space-x-3 p-3 ${currentView === 'pharmacies' ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'} rounded-xl`}
