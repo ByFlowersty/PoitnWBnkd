@@ -2,8 +2,8 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import supabase from "../lib/supabaseClient";
 import { FcGoogle } from "react-icons/fc";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button"; // Assuming this comes from shadcn/ui or similar
+import { Input } from "../components/ui/input";   // Assuming this comes from shadcn/ui or similar
 import {
   Card,
   CardHeader,
@@ -11,7 +11,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "../components/ui/card";
+} from "../components/ui/card"; // Assuming this comes from shadcn/ui or similar
 import {
   EyeIcon,
   EyeOffIcon,
@@ -100,23 +100,21 @@ export default function Register() {
           data: {
             full_name: formData.nombre_completo,
             role: selectedRole,
-            // Add phone to user metadata if desired, useful for easy access
-            // phone: formData.telefono,
           },
         },
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Registro fallido, no se obtuvo el usuario."); // Added check
+      if (!authData.user) throw new Error("Registro fallido, no se obtuvo el usuario.");
 
       // 2. Guardar en la tabla correspondiente según el rol
       if (selectedRole === "administrador") {
         const { error: adminError } = await supabase.from("administradores").insert([
           {
-            id: authData.user.id, // Ensure this matches your table's PK constraint if it's UUID
+            id: authData.user.id,
             nombre: formData.nombre_completo,
             email: formData.email,
-            telefono: formData.telefono || null, // Handle potential empty string
+            telefono: formData.telefono || null,
           },
         ]);
 
@@ -126,23 +124,20 @@ export default function Register() {
           text: "¡Administrador registrado! Por favor verifica tu email para activar tu cuenta.",
           type: "success",
         });
-         // Optionally clear form or redirect to a confirmation page
          setFormData({
            nombre_completo: "", email: "", password: "", telefono: "", date_of_birth: "", gender: "",
          });
          setStep(1);
          setTermsAccepted(false);
 
-
       } else if (selectedRole === "paciente") {
         const patientData = {
-          user_id: authData.user.id, // Ensure this matches your FK constraint
+          user_id: authData.user.id,
           name: formData.nombre_completo,
           email: formData.email,
-          phone: formData.telefono || null, // Use null for empty optional fields
+          phone: formData.telefono || null,
           date_of_birth: formData.date_of_birth || null,
           gender: formData.gender || null,
-          // created_at is usually handled by Supabase default value, but explicit is fine
           created_at: new Date().toISOString(),
         };
 
@@ -150,32 +145,25 @@ export default function Register() {
 
         if (patientError) throw patientError;
 
-        // Instead of immediately navigating, maybe show a success message and wait for email verification?
-        // Or, if email verification is disabled or you handle unverified users, navigate:
         setMessage({
           text: `¡Bienvenido ${formData.nombre_completo}! Revisa tu correo para verificar tu cuenta. Serás redirigido...`,
           type: "success",
         });
-        // Delay navigation slightly to let user read message
         setTimeout(() => {
              navigate("/paciente", {
-             // Pass minimal state, user data should be fetched after login/verification
              state: {
                  welcomeMessage: `¡Bienvenido ${formData.nombre_completo}!`,
-                 // Avoid passing sensitive data like user ID directly in state if possible
-                 // It's better to fetch user session/data on the target page
              },
              });
-        }, 3000); // 3 second delay
+        }, 3000);
 
-        return; // Prevent form reset below for patient redirection
+        return;
       }
 
 
-    } catch (error: any) { // Type assertion for error
-      console.error("Registration Error:", error); // Log the full error for debugging
+    } catch (error: any) {
+      console.error("Registration Error:", error);
       setMessage({
-        // Provide more specific common error messages
         text: error.message === 'User already registered'
               ? "Este correo electrónico ya está registrado. Intenta iniciar sesión."
               : error.message || "Error en el registro. Por favor intenta nuevamente.",
@@ -187,37 +175,36 @@ export default function Register() {
   };
 
   const handleGoogleSignUp = async () => {
-    setLoading(true); // Show loading indicator during OAuth redirect
+    setLoading(true);
     setMessage({ text: "", type: "" });
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // Redirect should ideally go to a page that handles the OAuth callback
-          // and then determines where to send the user (e.g., profile setup or dashboard)
-          // Using /paciente directly might work if your app structure handles new Google users there.
-          redirectTo: `${window.location.origin}/paciente`, // Ensure this page handles session creation
+          redirectTo: `${window.location.origin}/paciente`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
           },
-          // You might want to add default role metadata for Google signups if needed
-          // data: { role: 'paciente' } // This syntax might be incorrect, check Supabase docs for OAuth metadata
         },
       });
 
       if (error) throw error;
-      // Note: Redirection happens externally, so further code here might not execute immediately.
     } catch (error: any) {
       console.error("Google Sign Up Error:", error);
       setMessage({
         text: `Error con Google: ${error.message}`,
         type: "error",
       });
-      setLoading(false); // Turn off loading if OAuth fails before redirect
+      setLoading(false);
     }
-    // setLoading(false); // Should likely be turned off on the page redirected TO
   };
+
+  // Define base button classes using the new color
+  const primaryButtonClasses = "w-full bg-[#29abe2] text-white hover:bg-[#1f8acb] focus-visible:ring-[#29abe2]";
+  const googleButtonClasses = "w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#29abe2]";
+  const backButtonClasses = "w-full text-sm text-[#29abe2] hover:text-[#1f8acb] mt-2"; // Reverted hover text color
+
 
   return (
     // Updated gradient start color
@@ -227,18 +214,18 @@ export default function Register() {
            {/* Updated logo background color */}
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 mb-4">
             <img
-              src="/logo.png" // Ensure this path is correct relative to your public folder
+              src="/logo.png"
               alt="Carelux Point Logo"
-              width="64" // Adjust size if needed
+              width="64"
               height="64"
-              className="opacity-90 p-1" // Added padding if logo touches edge
+              className="opacity-90 p-1"
             />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Carelux Point</h1>
           <p className="text-gray-500 mt-1">Regístrate, es gratis</p>
         </div>
 
-        <Card className="w-full shadow-lg"> {/* Added shadow */}
+        <Card className="w-full shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl text-center">Crear cuenta</CardTitle>
             <CardDescription className="text-center">
@@ -248,35 +235,32 @@ export default function Register() {
             </CardDescription>
           </CardHeader>
 
-          {/* Role Selector */}
-          <div className="px-6 pb-4"> {/* Adjusted padding */}
-            <div className="flex items-center justify-center border rounded-md p-1 bg-gray-50"> {/* Changed style */}
-              <button
-                type="button"
-                onClick={() => { setSelectedRole("paciente"); setStep(1); setMessage({ text: "", type: "" }); }} // Reset step on role change
-                disabled={loading}
-                // Updated selected background/text color
-                className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors duration-200 ${
-                  selectedRole === "paciente"
-                    ? "bg-[#29abe2] text-white font-medium shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+          {/* Role Selector - Reverted Style */}
+          <div className="px-6">
+            <div className="flex items-center justify-center border-b border-gray-200 mb-4">
+              <div
+                onClick={() => { if(!loading) {setSelectedRole("paciente"); setStep(1); setMessage({ text: "", type: "" }); } }} // Added loading check
+                // Updated selected color, reverted structure
+                className={`relative px-4 py-2 text-sm cursor-pointer ${selectedRole === "paciente" ? "text-[#29abe2] font-medium" : "text-gray-600 hover:text-gray-900"}`}
               >
-                Soy Paciente
-              </button>
-              <button
-                type="button"
-                onClick={() => { setSelectedRole("administrador"); setStep(1); setMessage({ text: "", type: "" });}} // Reset step on role change
-                disabled={loading}
-                 // Updated selected background/text color
-                className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors duration-200 ${
-                  selectedRole === "administrador"
-                    ? "bg-[#29abe2] text-white font-medium shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
+                Paciente
+                {selectedRole === "paciente" && (
+                  // Updated underline color
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#29abe2] rounded-t"></div>
+                )}
+              </div>
+              <div className="h-5 w-px bg-gray-300"></div> {/* Separator */}
+              <div
+                 onClick={() => { if(!loading) {setSelectedRole("administrador"); setStep(1); setMessage({ text: "", type: "" }); } }} // Added loading check
+                 // Updated selected color, reverted structure
+                className={`relative px-4 py-2 text-sm cursor-pointer ${selectedRole === "administrador" ? "text-[#29abe2] font-medium" : "text-gray-600 hover:text-gray-900"}`}
               >
-                Soy Administrador
-              </button>
+                Administrador
+                {selectedRole === "administrador" && (
+                   // Updated underline color
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#29abe2] rounded-t"></div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -285,10 +269,10 @@ export default function Register() {
             <div
               className={`mx-6 mb-4 p-3 text-sm rounded-md border ${
                 message.type === "success"
-                  ? "bg-green-50 text-green-700 border-green-200" // Success message retains green color
-                  : "bg-red-50 text-red-700 border-red-200"      // Error message retains red color
+                  ? "bg-green-50 text-green-700 border-green-200"
+                  : "bg-red-50 text-red-700 border-red-200"
               }`}
-              role="alert" // Added accessibility role
+              role="alert"
             >
               {message.text}
             </div>
@@ -302,23 +286,23 @@ export default function Register() {
                   <div className="space-y-1">
                     <label
                       htmlFor="nombre_completo"
-                      className="text-sm font-medium text-gray-700 flex items-center gap-1.5" // Reduced gap
+                      className="text-sm font-medium text-gray-700 flex items-center gap-1.5"
                     >
-                      <UserIcon className="h-4 w-4 text-gray-500" /> {/* Icon color */}
+                      <UserIcon className="h-4 w-4 text-gray-500" />
                       Nombre Completo *
                     </label>
                     <Input
                       id="nombre_completo"
                       name="nombre_completo"
                       type="text"
-                      placeholder="Ej: Juan Pérez García"
+                      placeholder="" // Removed placeholder example
                       required
                       value={formData.nombre_completo}
                       onChange={handleChange}
                       disabled={loading}
-                      aria-required="true" // Accessibility
-                      // Updated focus ring color
-                      className="focus:ring-[#29abe2]"
+                      aria-required="true"
+                      // Updated focus ring color only
+                      className="focus-visible:ring-[#29abe2]"
                     />
                   </div>
 
@@ -334,14 +318,14 @@ export default function Register() {
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="tu@email.com"
+                      placeholder="" // Removed placeholder example
                       required
                       value={formData.email}
                       onChange={handleChange}
                       disabled={loading}
                       aria-required="true"
-                      // Updated focus ring color
-                      className="focus:ring-[#29abe2]"
+                       // Updated focus ring color only
+                      className="focus-visible:ring-[#29abe2]"
                     />
                   </div>
 
@@ -358,25 +342,25 @@ export default function Register() {
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
+                        placeholder="••••••••" // Kept placeholder for password
                         required
-                        minLength={8} // Correct attribute placement
+                        minLength={8}
                         value={formData.password}
                         onChange={handleChange}
-                        pattern='^(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$' // Use single quotes or escape inside double
-                        title="La contraseña debe tener al menos 8 caracteres y un carácter especial." // Correct attribute placement
+                        pattern='^(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$'
+                        title="La contraseña debe tener al menos 8 caracteres y un carácter especial."
                         disabled={loading}
                         aria-required="true"
-                        aria-describedby="password-hint" // Accessibility
-                        // Updated focus ring color
-                        className="focus:ring-[#29abe2]"
+                        aria-describedby="password-hint"
+                         // Updated focus ring color only
+                        className="focus-visible:ring-[#29abe2]"
                       />
                       <button
                         type="button"
-                        // Updated focus ring color
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#29abe2] rounded" // Added focus style
+                        // Updated focus ring color only
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#29abe2] rounded"
                         onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} // Accessibility
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                       >
                         {showPassword ? (
                           <EyeOffIcon className="h-5 w-5" />
@@ -386,7 +370,7 @@ export default function Register() {
                       </button>
                     </div>
                     <p id="password-hint" className="text-xs text-gray-500">
-                      Mínimo 8 caracteres y un carácter especial (ej: !, @, #, $). {/* Updated text */}
+                      Mínimo 8 caracteres y un carácter especial (ej: !, @, #, $).
                     </p>
                   </div>
                 </>
@@ -406,12 +390,12 @@ export default function Register() {
                       id="telefono"
                       name="telefono"
                       type="tel"
-                      placeholder="+52 123 456 7890"
+                      placeholder="" // Removed placeholder example
                       value={formData.telefono}
                       onChange={handleChange}
                       disabled={loading}
-                       // Updated focus ring color
-                      className="focus:ring-[#29abe2]"
+                       // Updated focus ring color only
+                       className="focus-visible:ring-[#29abe2]"
                     />
                   </div>
 
@@ -435,31 +419,32 @@ export default function Register() {
                           type="date"
                           value={formData.date_of_birth}
                           onChange={handleChange}
-                          max={new Date().toISOString().split("T")[0]} // Prevent future dates
+                          max={new Date().toISOString().split("T")[0]}
                           disabled={loading}
-                           // Updated focus ring color and width
-                          className="block w-full focus:ring-[#29abe2]"
+                           // Updated focus ring color only
+                          className="block w-full focus-visible:ring-[#29abe2]"
                         />
                       </div>
 
                       <div className="space-y-1">
                         <label
                           htmlFor="gender"
-                          className="text-sm font-medium text-gray-700 block" // Block label for select
+                          className="text-sm font-medium text-gray-700 block"
                         >
                           Género{" "}
                           <span className="text-xs text-gray-400">
                             (Opcional)
                           </span>
                         </label>
+                        {/* Assuming the select comes from HTML, if from shadcn/ui use its focus prop */}
                         <select
                           id="gender"
                           name="gender"
                           value={formData.gender}
                           onChange={handleChange}
                           disabled={loading}
-                           // Updated focus ring color
-                          className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#29abe2] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" // Style similar to Input
+                           // Updated focus ring color (standard HTML select)
+                          className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#29abe2] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <option value="">Seleccionar...</option>
                           <option value="masculino">Masculino</option>
@@ -474,7 +459,7 @@ export default function Register() {
                   )}
 
                   {/* Terms and Conditions Checkbox */}
-                  <div className="flex items-start mt-4 pt-2"> {/* Adjusted spacing */}
+                  <div className="flex items-start mt-4 pt-2">
                     <input
                       id="terms"
                       type="checkbox"
@@ -490,9 +475,9 @@ export default function Register() {
                     >
                       He leído y acepto los{" "}
                       <Link
-                        to="/terms" // Make sure this route exists
-                        target="_blank" // Open in new tab
-                        rel="noopener noreferrer" // Security best practice
+                        to="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
                          // Updated link color and hover color
                         className="font-medium text-[#29abe2] hover:text-[#1f8acb] hover:underline"
                       >
@@ -500,7 +485,7 @@ export default function Register() {
                       </Link>{" "}
                       y la{" "}
                        <Link
-                        to="/privacy" // Make sure this route exists
+                        to="/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
                         // Updated link color and hover color
@@ -513,17 +498,16 @@ export default function Register() {
                 </>
               )}
 
-              {/* Submit Button */}
+              {/* Submit Button - Using standard Button component */}
               <Button
                 type="submit"
-                // Updated background, hover, focus colors
-                className="w-full bg-[#29abe2] hover:bg-[#1f8acb] focus:ring-[#29abe2]"
-                disabled={loading || (step === 2 && !termsAccepted)} // Disable if loading or terms not accepted in step 2
+                className={primaryButtonClasses} // Apply color classes
+                disabled={loading || (step === 2 && !termsAccepted)}
               >
                 {loading ? (
-                  <span className="flex items-center justify-center"> {/* Centering */}
+                  <span className="flex items-center justify-center">
                     <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" // Adjusted margin
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -547,13 +531,13 @@ export default function Register() {
                     </span>
                   </span>
                 ) : step === 1 ? (
-                  "Continuar al paso 2"
+                  "Continuar" // Reverted text
                 ) : (
-                  "Completar Registro"
+                  "Registrarse" // Reverted text
                 )}
               </Button>
 
-              {/* Google Sign Up Button - Only on Step 1 for Pacientes */}
+              {/* Google Sign Up Button - Reverted to standard button element */}
               {step === 1 && selectedRole === "paciente" && (
                 <>
                   <div className="relative my-4">
@@ -567,41 +551,37 @@ export default function Register() {
                     </div>
                   </div>
 
-                  <Button
+                  <button // Using standard button element again
                     type="button"
-                    variant="outline" // Use outline variant
                     onClick={handleGoogleSignUp}
                     disabled={loading}
-                     // Updated focus ring color
-                    className="w-full flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#29abe2]"
+                    className={googleButtonClasses} // Apply color classes
                   >
                     <FcGoogle className="h-5 w-5" />
-                    <span>Continuar con Google</span>
-                  </Button>
+                    <span>Google</span> {/* Reverted text */}
+                  </button>
                 </>
               )}
 
-              {/* Back Button - Only on Step 2 */}
+              {/* Back Button - Reverted to standard button element */}
               {step === 2 && (
-                <Button
+                <button // Using standard button element again
                   type="button"
-                  variant="ghost" // Use ghost variant for secondary action
-                  onClick={() => { setStep(1); setMessage({ text: "", type: "" }); }} // Clear message on go back
+                  onClick={() => { setStep(1); setMessage({ text: "", type: "" }); }}
                   disabled={loading}
-                  // Updated text color, hover color, and hover background
-                  className="w-full text-sm text-[#29abe2] hover:text-[#1f8acb] hover:bg-sky-50 mt-2" // Using sky-50 for light hover bg
+                  className={backButtonClasses} // Apply color classes
                 >
-                  ← Volver al paso anterior {/* Added arrow */}
-                </Button>
+                  Volver al paso anterior {/* Reverted text */}
+                </button>
               )}
             </form>
           </CardContent>
 
-          <CardFooter className="flex flex-col items-center space-y-4 pt-4 pb-6"> {/* Adjusted padding */}
+          <CardFooter className="flex flex-col items-center space-y-4 pt-4 pb-6">
             <p className="text-sm text-center text-gray-600">
               ¿Ya tienes una cuenta?{" "}
               <Link
-                to="/login" // Ensure this route exists
+                to="/login"
                  // Updated link color and hover color
                 className="font-medium text-[#29abe2] hover:text-[#1f8acb] hover:underline"
               >
