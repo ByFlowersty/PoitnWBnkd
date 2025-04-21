@@ -13,9 +13,9 @@ import toast from 'react-hot-toast';
 function dataURLtoBlob(dataurl: string): Blob | null {
     try {
         const arr = dataurl.split(',');
-        if (arr.length < 2) return null;
+        if (arr.length < 2) { console.error("Invalid data URL format"); return null; }
         const mimeMatch = arr[0].match(/:(.*?);/);
-        if (!mimeMatch || mimeMatch.length < 2) return null;
+        if (!mimeMatch || mimeMatch.length < 2) { console.error("Could not extract MIME type"); return null; }
         const mime = mimeMatch[1];
         const bstr = atob(arr[1]);
         let n = bstr.length;
@@ -54,6 +54,7 @@ const Paciente_Interfaz: React.FC = () => {
   const [weatherData, setWeatherData] = useState<{ temp: number | null; condition: string; location: string; day: string; icon: JSX.Element; }>({ temp: null, condition: 'Cargando...', location: 'Obteniendo ubicación...', day: new Date().toLocaleDateString('es-ES', { weekday: 'long' }), icon: <Cloud className="h-5 w-5 text-white" /> });
   const [loadingWeather, setLoadingWeather] = useState<boolean>(true);
 
+
   // --- Función para Obtener Citas ---
   const fetchAppointments = useCallback(async (patientId: string | null = null) => {
     const idToFetch = patientId || patientData?.id; if (!idToFetch) { setLoadingAppointments(false); return; } setLoadingAppointments(true); try { const { data, error } = await supabase .from('appointments') .select(`id, appointment_date, appointment_time, tipo_consulta, doctors ( name )`) .eq('patient_id', idToFetch) .order('appointment_date', { ascending: true }) .order('appointment_time', { ascending: true }); if (error) throw error; const processedAppointments = data?.map(appt => ({ ...appt, doctor_name: appt.doctors?.name || 'Dr. Asignado' })) || []; setAppointments(processedAppointments); } catch (fetchError: any) { console.error('Error fetching appointments:', fetchError); toast.error('Error al cargar las citas.'); } finally { setLoadingAppointments(false); }
@@ -62,7 +63,7 @@ const Paciente_Interfaz: React.FC = () => {
   // --- Efecto para Autenticación y Datos Iniciales ---
   useEffect(() => {
     const checkAuthAndPatientData = async () => { setLoading(true); setError(null); try { const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(); if (authError || !authUser) { toast.error('Sesión no válida. Redirigiendo a login...'); setTimeout(() => { window.location.href = '/login'; }, 1500); return; } setUser(authUser); const { data: patient, error: patientError } = await supabase .from('patients') .select('*') .eq('user_id', authUser.id) .maybeSingle(); if (patientError) { throw new Error("Error al obtener perfil del paciente."); } if (!patient) { setShowPatientForm(true); setLoading(false); } else { setPatientData(patient); setLoyaltyCode(patient.surecode || ''); setShowPatientForm(false); fetchAppointments(patient.id); setLoading(false); } } catch (err: any) { console.error('Error checking auth and patient data:', err); setError(err.message || 'Ocurrió un error inesperado.'); setLoading(false); } }; checkAuthAndPatientData();
-  }, [fetchAppointments]); // Dependencia correcta
+  }, [fetchAppointments]);
 
   // --- Manejo de Cambios en Formularios ---
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -71,7 +72,7 @@ const Paciente_Interfaz: React.FC = () => {
 
   // --- Funciones de Cámara ---
   const startCamera = async () => {
-    console.log("[Camera] Attempting start..."); if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast.error("La cámara no es soportada."); return; } setShowCameraModal(true); try { const constraints = { video: { facingMode: 'user', height: { ideal: 1280 }, width: { ideal: 720 } }, audio: false }; const mediaStream = await navigator.mediaDevices.getUserMedia(constraints); console.log("[Camera] Stream obtained:", mediaStream); setCameraStream(mediaStream); /* No asignar srcObject aquí */ } catch (err: any) { console.error("[Camera] Error starting camera:", err.name, err.message); let errorMsg = `Error de cámara (${err.name}).`; if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") { errorMsg = "Permiso de cámara denegado. Habilítalo en tu navegador."; } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") { errorMsg = "No se encontró ninguna cámara conectada."; } else if (err.name === "NotReadableError" || err.name === "TrackStartError") { errorMsg = "La cámara está ocupada o hubo un error de hardware."; } else if (err.name === "OverconstrainedError" || err.name === "ConstraintNotSatisfiedError") { errorMsg = "La cámara no soporta la configuración solicitada."; } toast.error(errorMsg); setShowCameraModal(false); setCameraStream(null); }
+    console.log("[Camera] Attempting start..."); if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast.error("La cámara no es soportada."); return; } setShowCameraModal(true); try { const constraints = { video: { facingMode: 'user', height: { ideal: 1280 }, width: { ideal: 720 } }, audio: false }; const mediaStream = await navigator.mediaDevices.getUserMedia(constraints); console.log("[Camera] Stream obtained:", mediaStream); setCameraStream(mediaStream); } catch (err: any) { console.error("[Camera] Error starting camera:", err.name, err.message); let errorMsg = `Error de cámara (${err.name}).`; if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") { errorMsg = "Permiso de cámara denegado. Habilítalo en tu navegador."; } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") { errorMsg = "No se encontró ninguna cámara conectada."; } else if (err.name === "NotReadableError" || err.name === "TrackStartError") { errorMsg = "La cámara está ocupada o hubo un error de hardware."; } else if (err.name === "OverconstrainedError" || err.name === "ConstraintNotSatisfiedError") { errorMsg = "La cámara no soporta la configuración solicitada."; } toast.error(errorMsg); setShowCameraModal(false); setCameraStream(null); }
   };
 
   const stopCamera = useCallback(() => {
@@ -85,7 +86,7 @@ const Paciente_Interfaz: React.FC = () => {
   // --- Efecto para Conectar Stream a Video ---
   useEffect(() => {
     if (cameraStream && videoRef.current) { console.log("[Camera Effect] Asignando srcObject."); videoRef.current.srcObject = cameraStream; videoRef.current.play().catch(playError => { console.error("[Camera Effect] Error al reproducir:", playError); toast.error("No se pudo iniciar la vista previa."); }); } else { console.log("[Camera Effect] No se asigna srcObject."); }
-  }, [cameraStream]); // Se ejecuta cuando cameraStream cambia
+  }, [cameraStream]);
 
   // --- Función para Subir Foto ---
   const uploadPhoto = async (imageDataUrl: string): Promise<string | null> => {
@@ -96,16 +97,16 @@ const Paciente_Interfaz: React.FC = () => {
       try {
           const fileExt = blob.type.split('/')[1] || 'png';
           const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-          const filePath = `${fileName}`; // O `private/${fileName}` si usas política con carpeta
-          // --- ¡¡¡ REEMPLAZA 'patient-photos' CON TU BUCKET !!! ---
-          const bucketName = 'patient-photos';
+          const filePath = `${fileName}`; // O `private/${fileName}`
+          // --- ¡¡¡ REEMPLAZA 'patients_photos' CON TU BUCKET !!! ---
+          const bucketName = 'patients_photos';
           console.log(`Subiendo a bucket: ${bucketName}, ruta: ${filePath}`);
           const { data, error: uploadError } = await supabase.storage
               .from(bucketName)
               .upload(filePath, blob, { cacheControl: '3600', upsert: true, contentType: blob.type });
           if (uploadError) { console.error("Error de subida Supabase:", uploadError); throw uploadError; }
           console.log("Subida exitosa, obteniendo URL pública para:", filePath);
-          // --- ¡¡¡ REEMPLAZA 'patient-photos' CON TU BUCKET !!! ---
+          // --- ¡¡¡ REEMPLAZA 'patients_photos' CON TU BUCKET !!! ---
           const { data: urlData } = supabase.storage
               .from(bucketName)
               .getPublicUrl(filePath);
@@ -124,7 +125,7 @@ const Paciente_Interfaz: React.FC = () => {
 
   // --- Envío del Formulario de Creación de Perfil ---
   const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!user) return; let photoUrl: string | null = null; if (capturedImage) { photoUrl = await uploadPhoto(capturedImage); /* Puedes decidir si continuar si photoUrl es null */ } try {
+    e.preventDefault(); if (!user) return; let photoUrl: string | null = null; if (capturedImage) { photoUrl = await uploadPhoto(capturedImage); } try {
       // --- ¡¡¡ REEMPLAZA 'Foto_paciente' SI TU COLUMNA SE LLAMA DIFERENTE !!! ---
       const { data: newPatient, error } = await supabase .from('patients') .insert({ user_id: user.id, email: user.email, name: formData.name, date_of_birth: formData.date_of_birth || null, gender: formData.gender || null, phone: formData.phone || null, created_at: new Date().toISOString(), blood_type: formData.blood_type || null, allergies: formData.allergies || null, Foto_paciente: photoUrl }) .select().single(); if (error) throw error; setPatientData(newPatient); setShowPatientForm(false); toast.success('Perfil guardado!'); fetchAppointments(newPatient.id); } catch (err: any) { console.error('Error saving patient data:', err); toast.error(`Error al guardar perfil: ${err.message || 'Inténtelo de nuevo.'}`); }
   };
@@ -138,6 +139,34 @@ const Paciente_Interfaz: React.FC = () => {
   useEffect(() => {
     const fetchWeather = () => { if (!navigator.geolocation) { console.warn("Geolocation is not supported."); setWeatherData(prev => ({...prev, temp: null, condition: 'Geolocalización no soportada', location: 'Desconocida', icon: <AlertTriangle className="h-5 w-5 text-white" /> })); setLoadingWeather(false); return; } setLoadingWeather(true); navigator.geolocation.getCurrentPosition(async (position) => { const { latitude, longitude } = position.coords; try { const openMeteoApiEndpoint = import.meta.env.VITE_OPENMETEO_API_ENDPOINT || 'https://api.open-meteo.com/v1/forecast'; const weatherApiUrl = `${openMeteoApiEndpoint}?latitude=${latitude}&longitude=${longitude}¤t=temperature_2m,weather_code&timezone=auto`; const response = await fetch(weatherApiUrl); if (!response.ok) { const errorData = await response.json().catch(() => ({})); throw new Error(`Weather API Error ${response.status}: ${errorData?.reason || response.statusText}`); } const data = await response.json(); const getWeatherDetails = (code: number): { condition: string; icon: JSX.Element } => { const conditions: { [key: number]: { condition: string; icon: JSX.Element } } = { 0: { condition: 'Despejado', icon: <Sun className="h-5 w-5 text-white" /> }, 1: { condition: 'Mayormente despejado', icon: <Sun className="h-5 w-5 text-white" /> }, 2: { condition: 'Parcialmente nublado', icon: <Cloud className="h-5 w-5 text-white" /> }, 3: { condition: 'Nublado', icon: <Cloud className="h-5 w-5 text-white" /> }, 45: { condition: 'Niebla', icon: <CloudFog className="h-5 w-5 text-white" /> }, 48: { condition: 'Niebla engelante', icon: <CloudFog className="h-5 w-5 text-white" /> }, 51: { condition: 'Llovizna ligera', icon: <CloudDrizzle className="h-5 w-5 text-white" /> }, 53: { condition: 'Llovizna moderada', icon: <CloudDrizzle className="h-5 w-5 text-white" /> }, 55: { condition: 'Llovizna densa', icon: <CloudRain className="h-5 w-5 text-white" /> }, 61: { condition: 'Lluvia ligera', icon: <CloudRain className="h-5 w-5 text-white" /> }, 63: { condition: 'Lluvia moderada', icon: <CloudRain className="h-5 w-5 text-white" /> }, 65: { condition: 'Lluvia fuerte', icon: <CloudRain className="h-5 w-5 text-white" /> }, 71: { condition: 'Nieve ligera', icon: <Snowflake className="h-5 w-5 text-white" /> }, 73: { condition: 'Nieve moderada', icon: <Snowflake className="h-5 w-5 text-white" /> }, 75: { condition: 'Nieve fuerte', icon: <Snowflake className="h-5 w-5 text-white" /> }, 80: { condition: 'Chubascos ligeros', icon: <CloudRain className="h-5 w-5 text-white" /> }, 81: { condition: 'Chubascos moderados', icon: <CloudRain className="h-5 w-5 text-white" /> }, 82: { condition: 'Chubascos violentos', icon: <CloudRain className="h-5 w-5 text-white" /> }, 95: { condition: 'Tormenta', icon: <CloudLightning className="h-5 w-5 text-white" /> }, 96: { condition: 'Tormenta c/ granizo ligero', icon: <CloudLightning className="h-5 w-5 text-white" /> }, 99: { condition: 'Tormenta c/ granizo fuerte', icon: <CloudLightning className="h-5 w-5 text-white" /> }, }; return conditions[code] ?? { condition: 'No disponible', icon: <Cloud className="h-5 w-5 text-white" /> }; }; if (data?.current) { const details = getWeatherDetails(data.current.weather_code); setWeatherData({ temp: Math.round(data.current.temperature_2m), condition: details.condition, icon: details.icon, location: 'Tu ubicación', day: new Date().toLocaleDateString('es-ES', { weekday: 'long' }), }); } else { throw new Error("Datos del clima inválidos."); } } catch (fetchError: any) { console.error('Error fetching weather data:', fetchError); setWeatherData(prev => ({ ...prev, temp: null, condition: 'Error al cargar', location: 'Desconocida', icon: <AlertTriangle className="h-5 w-5 text-white" />, })); } finally { setLoadingWeather(false); } }, (geoError) => { console.error("Geolocation error: ", geoError); setWeatherData(prev => ({ ...prev, temp: null, condition: 'Ubicación denegada', location: 'Desconocida', icon: <MapPin className="h-5 w-5 text-white" /> })); setLoadingWeather(false); }); }; fetchWeather();
   }, []);
+
+  // --- Efecto para Notificación de Perfil Incompleto (Foto) ---
+  useEffect(() => {
+    if (!loading && !error && patientData) {
+        if (!patientData.Foto_paciente) {
+            console.log("[Notification] Profile picture missing, showing toast.");
+            toast(
+                (t) => (
+                  <span className="flex items-center">
+                    <Info size={18} className="mr-2 text-blue-500 shrink-0" />
+                    <span className="flex-1">
+                        Completa tu perfil añadiendo una foto.
+                    </span>
+                    <button onClick={() => toast.dismiss(t.id)} className="ml-3 p-1 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-700">
+                        <X size={16} />
+                    </button>
+                  </span>
+                ),
+                { id: 'profile-incomplete-toast', duration: 8000, position: "bottom-center", style: { border: '1px solid #e0e0e0', padding: '12px', maxWidth: '500px' } }
+            );
+        } else {
+            console.log("[Notification] Profile picture exists, dismissing toast.");
+            toast.dismiss('profile-incomplete-toast');
+        }
+    } else if (!loading && !error && !patientData) {
+         toast.dismiss('profile-incomplete-toast');
+    }
+  }, [loading, error, patientData]);
 
   // --- Manejadores UI ---
   const handleViewChange = (view: string) => { setCurrentView(view); setMobileMenuOpen(false); };
@@ -198,18 +227,25 @@ const Paciente_Interfaz: React.FC = () => {
   // --- Interfaz Principal Paciente ---
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
+      {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-30 border-b border-gray-200">
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center"> <div className="flex items-center gap-3"> <img src="/logo.png" alt="Carelux Logo" className="h-10 w-auto"/> <h1 className="text-xl font-semibold text-gray-800 hidden sm:block">Portal Paciente</h1> </div> <button className="p-2 rounded-md text-gray-600 hover:text-primary hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary lg:hidden" onClick={toggleMobileMenu} aria-label="Abrir menú"><Menu className="h-6 w-6" /></button> </div>
       </header>
+      {/* Contenido Principal */}
       <main className="flex-1 pt-6 pb-24 lg:pb-8">
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+            {/* Sidebar */}
             <aside className="lg:col-span-3 xl:col-span-2 hidden lg:block">
                 <div className="sticky top-20 bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-1.5">{[ { view: 'home', label: 'Inicio', icon: Home }, { view: 'appointments', label: 'Calendario', icon: CalendarIcon }, { view: 'medications', label: 'Recetas', icon: FileText }, { view: 'EREBUS', label: 'EREBUS', icon: FileText }, { view: 'pharmacies', label: 'Farmacias', icon: Package2 }, { view: 'profile', label: 'Perfil', icon: User }, ].map(item => ( <button key={item.view} className={`w-full flex items-center space-x-3 p-3 text-sm rounded-lg transition-colors duration-150 ${ currentView === item.view ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800' }`} onClick={() => handleViewChange(item.view)}> <item.icon className="h-5 w-5 flex-shrink-0" /> <span>{item.label}</span> </button> ))}</div>
             </aside>
+             {/* Menú Móvil */}
             {mobileMenuOpen && ( <> <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden" onClick={toggleMobileMenu} aria-hidden="true"></div><div className="fixed inset-y-0 left-0 max-w-xs w-full bg-white shadow-xl z-40 lg:hidden flex flex-col" ><div className="p-4 border-b border-gray-200 flex items-center justify-between"><div className="flex items-center gap-2"><img src="/logo.png" alt="Logo" className="h-8 w-auto"/><span className="text-lg font-semibold text-gray-800">Menú</span></div><button className="p-2 -mr-2 rounded-md text-gray-500 hover:bg-gray-100" onClick={toggleMobileMenu} aria-label="Cerrar menú"> <X className="h-6 w-6" /> </button></div><nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">{[ { view: 'home', label: 'Inicio', icon: Home }, { view: 'appointments', label: 'Calendario', icon: CalendarIcon }, { view: 'medications', label: 'Recetas', icon: FileText }, { view: 'EREBUS', label: 'EREBUS', icon: FileText }, { view: 'pharmacies', label: 'Farmacias', icon: Package2 }, { view: 'profile', label: 'Perfil', icon: User }, ].map(item => ( <button key={item.view} className={`w-full flex items-center space-x-3 p-3 text-sm rounded-lg transition-colors duration-150 ${ currentView === item.view ? 'bg-primary/10 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800' }`} onClick={() => handleViewChange(item.view)}> <item.icon className="h-5 w-5 flex-shrink-0" /> <span>{item.label}</span> </button> ))} </nav></div></> )}
+            {/* Navegación Inferior Móvil */}
             <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 lg:hidden shadow-[0_-2px_5px_rgba(0,0,0,0.05)]"> <div className="grid grid-cols-6 h-16">{[ { view: 'home', label: 'Inicio', icon: Home }, { view: 'appointments', label: 'Citas', icon: CalendarIcon }, { view: 'medications', label: 'Recetas', icon: FileText }, { view: 'EREBUS', label: 'EREBUS', icon: FileText }, { view: 'pharmacies', label: 'Farmacias', icon: Package2 }, { view: 'profile', label: 'Perfil', icon: User }, ].map(item => ( <button key={item.view} className={`flex flex-col items-center justify-center pt-1 transition-colors duration-150 ${ currentView === item.view ? 'text-primary' : 'text-gray-500 hover:text-primary' }`} onClick={() => handleViewChange(item.view)} aria-label={item.label}> <item.icon className="h-5 w-5 mb-0.5" /> <span className="text-[10px] font-medium tracking-tight text-center leading-tight">{item.label}</span> </button> ))} </div> </nav>
+            {/* Área Contenido Principal */}
             <div className="lg:col-span-9 xl:col-span-10 space-y-6">
+              {/* Contenido Vista Home */}
               {currentView === 'home' && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -223,9 +259,11 @@ const Paciente_Interfaz: React.FC = () => {
                  </div>
                 </>
               )}
+              {/* Panel Contenido Otras Vistas */}
               {currentView !== 'home' && currentView !== 'profile' && (
                 <ContentPanel view={currentView as any} patientId={patientData?.id} onClose={() => handleViewChange('home')} />
               )}
+              {/* Contenido Vista Perfil */}
               {currentView === 'profile' && patientData && (
                 <div className="space-y-6">
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 md:p-6"> <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6"><div><h3 className="text-lg font-semibold text-gray-800 mb-1">Código de Identificación</h3><p className="text-sm text-gray-600 mb-3">Usa este código para identificarte rápidamente.</p><p className="text-2xl font-bold text-primary font-mono tracking-widest bg-gray-100 px-4 py-2 rounded-md inline-block break-all">{patientData?.surecode || loyaltyCode || 'No Generado'}</p></div><div className="flex flex-col sm:flex-row md:flex-col gap-3 mt-2 md:mt-0 flex-shrink-0">{(!patientData?.surecode && !loyaltyCode) && ( <button onClick={generateLoyaltyCode} disabled={isGeneratingCode} className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm font-medium shadow disabled:opacity-70 disabled:cursor-not-allowed"> {isGeneratingCode ? ( <> <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span><span>Generando...</span> </> ) : ( <> <QrCode className="h-4 w-4" /> <span>Generar Código</span> </>)} </button> )}{(patientData?.surecode || loyaltyCode) && ( <button onClick={() => setShowBarcode((prev) => !prev)} className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm font-medium"> <QrCode className="h-4 w-4" /> <span>{showBarcode ? 'Ocultar Barras' : 'Mostrar Barras'}</span> </button> )}</div></div>{(patientData?.surecode || loyaltyCode) && showBarcode && ( <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 overflow-x-auto max-w-md mx-auto flex justify-center"> <Barcode value={patientData?.surecode || loyaltyCode} width={1.8} height={60} margin={10} displayValue={false} background="#ffffff" lineColor="#000000" /> </div> )}</div>
