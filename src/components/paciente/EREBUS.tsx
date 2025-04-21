@@ -23,7 +23,7 @@ function EREBUS() {
 
   // --- Configuración de la API ---
   // *** CAMBIO AQUÍ: Usando VITE_API_EREBUS_URL ***
-  const API_ENDPOINT = import.meta.env.VITE_API_EREBUS_URL || 'http://erebus-production.up.railway.app';
+  const API_ENDPOINT = import.meta.env.VITE_API_EREBUS_URL;
   const PROCESS_ENDPOINT = `${API_ENDPOINT}/process_audio/`; // Endpoint específico
 
   // --- Funciones de Grabación ---
