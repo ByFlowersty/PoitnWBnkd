@@ -1,59 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
 import { Calendar as CalendarIcon, ArrowLeft, MapPin } from 'lucide-react';
-import supabase from '../../lib/supabaseClient'; // Asegúrate que la ruta es correcta desde este archivo
+import supabase from '../../lib/supabaseClient';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import AppointmentScheduler from './AppointmentScheduler';
 import Recetas from './Recetas';
-import EREBUS from './EREBUS'; // <<<--- 1. IMPORTADO EREBUS (Ajusta la ruta si es necesario)
+import EREBUS from './EREBUS';
 
-// Fix para los iconos de Leaflet en producción
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
+// ... (resto de imports y fix de iconos de Leaflet) ...
 
 interface Pharmacy {
   id: string;
   nombre: string;
-  ubicacion: string; // Esperamos "lat,lon" como string
+  ubicacion: string; // Puede ser "lat,lon" o una dirección completa
   telefono: string;
   horario_atencion: string;
-  key_lux: string; // No usado actualmente en el panel
-  id_administrador: string; // No usado actualmente en el panel
+  key_lux: string;
+  id_administrador: string;
+  // Campos opcionales para almacenar coordenadas cacheadas en el estado
+  lat?: number;
+  lon?: number;
 }
 
-interface ContentPanelProps {
-  // <<<--- 2. ACTUALIZADO TIPO DE VIEW (Añadido EREBUS, quitado home)
-  view: 'appointments' | 'medications' | 'pharmacies' | 'EREBUS';
-  // <<<--- Considera pasar más props si los componentes hijos las necesitan (e.g., patientId)
-  patientId?: string; // Ejemplo de prop adicional
-  onClose: () => void; // onClose sigue siendo útil para el botón de volver en Farmacias
-}
+// ... (resto de la interfaz ContentPanelProps) ...
 
-// <<<--- Considera recibir props adicionales aquí si son necesarias
 const ContentPanel = ({ view, onClose, patientId }: ContentPanelProps) => {
+  // Mantén el tipo original, pero podrías añadir lat/lon opcionales si cacheas
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
-  const [loadingPharmacies, setLoadingPharmacies] = useState<boolean>(false); // Estado de carga
-  const [errorPharmacies, setErrorPharmacies] = useState<string | null>(null); // Estado de error
-  const [selectedPharmacyId, setSelectedPharmacyId] = useState<string | null>(null); // Usar string para ID
-  // const [mapCenter, setMapCenter] = useState<[number, number]>([19.370442, -99.175322]); // El centro se actualiza dinámicamente
+  const [loadingPharmacies, setLoadingPharmacies] = useState<boolean>(false);
+  const [errorPharmacies, setErrorPharmacies] = useState<string | null>(null);
+  const [selectedPharmacyId, setSelectedPharmacyId] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState<boolean>(false); // Estado para indicar carga de geocodificación
 
-  // Referencias para el mapa
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
-  // --- Efectos y Lógica para Farmacias ---
-
-  // Cargar farmacias solo cuando la vista es 'pharmacies'
+  // ... (useEffect para fetchPharmacies - sin cambios aquí, la geocodificación se hará al hacer clic) ...
   useEffect(() => {
     if (view === 'pharmacies') {
       const fetchPharmacies = async () => {
         setLoadingPharmacies(true);
         setErrorPharmacies(null);
+        setIsGeocoding(false); // Reset geocoding state
+        setSelectedPharmacyId(null); // Reset selection
         const { data, error } = await supabase
           .from('farmacias')
           .select('*');
@@ -62,197 +52,218 @@ const ContentPanel = ({ view, onClose, patientId }: ContentPanelProps) => {
           console.error('Error fetching pharmacies:', error);
           setErrorPharmacies('No se pudieron cargar las farmacias.');
         } else if (data) {
-          setPharmacies(data as Pharmacy[]); // Asegurar el tipo
+          // Aquí NO hacemos geocodificación aún, solo cargamos los datos
+          setPharmacies(data as Pharmacy[]);
         }
         setLoadingPharmacies(false);
       };
 
       fetchPharmacies();
     } else {
-      // Limpiar farmacias si la vista cambia para evitar mostrar datos viejos brevemente
       setPharmacies([]);
     }
-  }, [view]); // Dependencia: 'view'
+  }, [view]);
 
-  // Inicializar o destruir mapa basado en la vista 'pharmacies'
+  // ... (useEffect para inicializar/destruir mapa - sin cambios) ...
   useEffect(() => {
     let mapInstance: L.Map | null = null;
-
-    if (view === 'pharmacies' && mapContainerRef.current && !mapRef.current) {
-      const defaultLocation: [number, number] = [19.4326, -99.1332]; // Centro de CDMX como default
-      mapInstance = L.map(mapContainerRef.current, {
-          // Opciones adicionales si son necesarias
-      }).setView(defaultLocation, 12); // Zoom un poco más alejado inicialmente
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19, // Limitar zoom máximo
-      }).addTo(mapInstance);
-
-      mapRef.current = mapInstance;
-
-      // Forzar invalidación de tamaño después de un breve retraso
-      // Esto ayuda si el contenedor del mapa no era visible inmediatamente
-      const timerId = setTimeout(() => {
-        mapInstance?.invalidateSize();
-      }, 150); // Un poco más de tiempo
-
-      // Limpieza del timeout si el componente se desmonta antes
-      return () => clearTimeout(timerId);
-    }
-
-    // Función de limpieza para cuando la vista cambia o el componente se desmonta
+    // ... (resto del código de inicialización del mapa) ...
     return () => {
       if (mapRef.current) {
-        mapRef.current.remove(); // Destruir instancia del mapa
+        mapRef.current.remove();
         mapRef.current = null;
-        markerRef.current = null; // Limpiar referencia al marcador
+        markerRef.current = null;
       }
     };
-  }, [view]); // Re-ejecutar solo si la vista cambia
+  }, [view]);
 
-  // Manejar clic en farmacia
-  const handlePharmacyClick = (pharmacy: Pharmacy) => {
+
+  // --- MODIFICADO: Manejar clic en farmacia con geocodificación ---
+  const handlePharmacyClick = async (pharmacy: Pharmacy) => { // <--- Hacer async
+    if (isGeocoding) return; // Evitar clics múltiples mientras se geocodifica
+
+    setSelectedPharmacyId(pharmacy.id);
+    let lat: number | null = null;
+    let lon: number | null = null;
+    let addressToDisplay = pharmacy.ubicacion; // Guardar la dirección original para el popup
+
     try {
-      setSelectedPharmacyId(pharmacy.id); // Usar ID como string
-
-      // Validar y parsear ubicación
-      if (!pharmacy.ubicacion || typeof pharmacy.ubicacion !== 'string') {
-        console.error('Dato de ubicación inválido:', pharmacy.ubicacion);
-        alert('La ubicación de esta farmacia no está disponible.');
-        return;
+      // 1. Intentar parsear como "lat,lon" primero
+      if (pharmacy.ubicacion && pharmacy.ubicacion.includes(',')) {
+        const coords = pharmacy.ubicacion.split(',');
+        if (coords.length === 2) {
+          const parsedLat = parseFloat(coords[0].trim());
+          const parsedLon = parseFloat(coords[1].trim());
+          if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
+            lat = parsedLat;
+            lon = parsedLon;
+            console.log(`Usando coordenadas existentes para ${pharmacy.nombre}:`, lat, lon);
+          }
+        }
       }
 
-      const coords = pharmacy.ubicacion.split(',');
-      if (coords.length !== 2) {
-        console.error('Formato de ubicación incorrecto (debe ser "lat,lon"):', pharmacy.ubicacion);
-        alert('El formato de la ubicación es incorrecto.');
-        return;
-      }
-
-      const lat = parseFloat(coords[0].trim());
-      const lon = parseFloat(coords[1].trim());
-
-      if (isNaN(lat) || isNaN(lon)) {
-        console.error('Latitud o longitud inválida:', pharmacy.ubicacion);
-        alert('Las coordenadas de la ubicación son inválidas.');
-        return;
-      }
-
-      const newCenter: [number, number] = [lat, lon];
-      // setMapCenter(newCenter); // No es necesario si usamos flyTo directamente
-
-      if (mapRef.current) {
-        // Mover el mapa suavemente
-        mapRef.current.flyTo(newCenter, 16); // Zoom más cercano al seleccionar
-
-        // Eliminar marcador anterior si existe
-        if (markerRef.current) {
-          mapRef.current.removeLayer(markerRef.current);
+      // 2. Si no se parseó o no era formato lat,lon, intentar geocodificar
+      if (lat === null || lon === null) {
+        if (!pharmacy.ubicacion || typeof pharmacy.ubicacion !== 'string' || pharmacy.ubicacion.trim() === '') {
+          console.error('Dirección inválida o vacía:', pharmacy.ubicacion);
+          alert('La dirección de esta farmacia no es válida.');
+          return;
         }
 
-        // Añadir nuevo marcador y abrir popup
-        const newMarker = L.marker(newCenter).addTo(mapRef.current);
-        newMarker.bindPopup(`<b>${pharmacy.nombre}</b>`).openPopup(); // Popup más simple
+        // Si tenemos lat/lon cacheados en el estado, usarlos (opcional pero mejora UX)
+        if (pharmacy.lat && pharmacy.lon) {
+            lat = pharmacy.lat;
+            lon = pharmacy.lon;
+            console.log(`Usando coordenadas cacheadas para ${pharmacy.nombre}:`, lat, lon);
+        } else {
+            // Geocodificar usando Nominatim
+            console.log(`Geocodificando dirección para ${pharmacy.nombre}:`, pharmacy.ubicacion);
+            setIsGeocoding(true); // Indicar que estamos buscando coords
 
-        // Guardar referencia al nuevo marcador
-        markerRef.current = newMarker;
+            try {
+              const encodedAddress = encodeURIComponent(pharmacy.ubicacion);
+              // IMPORTANTE: Cambia 'TuAppNombre/1.0 (tuemail@dominio.com)' por info real.
+              //             Es requerido por la política de uso de Nominatim.
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodedAddress}&format=json&limit=1&countrycodes=mx`, // Limitar a México (opcional)
+                {
+                  method: 'GET',
+                  headers: {
+                    'User-Agent': 'MIA_App/1.0 (soporte@mia-salud.com)' // ¡¡CAMBIA ESTO!!
+                  }
+                }
+              );
+
+              if (!response.ok) {
+                throw new Error(`Error de red [${response.status}]: ${response.statusText}`);
+              }
+
+              const data = await response.json();
+
+              if (data && data.length > 0) {
+                lat = parseFloat(data[0].lat);
+                lon = parseFloat(data[0].lon);
+                console.log('Geocodificación exitosa:', lat, lon);
+
+                // Opcional: Actualizar el estado para cachear las coordenadas
+                // Esto evita volver a llamar a la API si se hace clic de nuevo
+                setPharmacies(prevPharmacies =>
+                  prevPharmacies.map(p =>
+                    p.id === pharmacy.id ? { ...p, lat: lat, lon: lon } : p
+                  )
+                );
+
+              } else {
+                console.error('No se encontraron coordenadas para:', pharmacy.ubicacion);
+                alert(`No se pudieron encontrar las coordenadas para la dirección:\n${pharmacy.ubicacion}`);
+                setIsGeocoding(false);
+                return; // Detener si no se encontraron coordenadas
+              }
+            } catch (geoError: any) {
+              console.error('Error durante la geocodificación:', geoError);
+              alert(`Ocurrió un error al buscar la ubicación: ${geoError.message}`);
+              setIsGeocoding(false);
+              return; // Detener en caso de error
+            } finally {
+              setIsGeocoding(false); // Asegurarse de quitar el estado de carga
+            }
+        } // Fin del else (necesidad de geocodificar)
+      } // Fin del if (lat o lon eran null)
+
+
+      // 3. Si tenemos coordenadas (parseadas o geocodificadas), mover el mapa
+      if (lat !== null && lon !== null) {
+        const newCenter: [number, number] = [lat, lon];
+
+        if (mapRef.current) {
+          mapRef.current.flyTo(newCenter, 16); // Zoom más cercano
+
+          if (markerRef.current) {
+            mapRef.current.removeLayer(markerRef.current);
+          }
+
+          const newMarker = L.marker(newCenter).addTo(mapRef.current);
+          // Mostrar nombre y dirección original en el popup
+          newMarker.bindPopup(`<b>${pharmacy.nombre}</b><br>${addressToDisplay}`).openPopup();
+          markerRef.current = newMarker;
+        }
+      } else {
+        // Esto no debería ocurrir si la lógica anterior es correcta, pero por si acaso
+        console.error('Error inesperado: No se obtuvieron coordenadas válidas para', pharmacy.nombre);
+        alert('No se pudo mostrar la farmacia en el mapa.');
       }
+
     } catch (error) {
-      console.error('Error al manejar clic en farmacia:', error);
-      alert('Ocurrió un error al seleccionar la farmacia.');
+      console.error('Error general al manejar clic en farmacia:', error);
+      alert('Ocurrió un error inesperado al seleccionar la farmacia.');
+      setIsGeocoding(false); // Asegurarse de resetear el estado de carga
     }
   };
 
   // --- Renderizado Específico para Farmacias ---
   const renderPharmacyMap = () => {
-    return (
-      // Añadir un contenedor con padding y fondo blanco si no lo tiene el padre
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        {/* Header de la sección */}
-        <div className="p-4 md:p-5 border-b border-gray-200 flex items-center">
-           {/* Botón de volver (opcional si siempre se muestra el sidebar/nav) */}
-          {/* <button onClick={onClose} className="mr-3 text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100">
-            <ArrowLeft className="h-5 w-5" />
-          </button> */}
-          <h3 className="text-lg font-semibold text-gray-800">Farmacias Cercanas</h3>
-        </div>
-
-        {/* Contenido principal de farmacias */}
-        <div className="p-4 md:p-5">
-          {/* Mapa */}
-          <div className="mb-6 rounded-lg overflow-hidden border border-gray-200">
+    // ... (Inicio del JSX del contenedor, header, mapa) ...
+          <div className="mb-6 rounded-lg overflow-hidden border border-gray-200 relative"> {/* Añadir relative para el loader */}
             <div
               ref={mapContainerRef}
-              className="h-64 md:h-80 w-full bg-gray-100" // Fondo mientras carga
+              className="h-64 md:h-80 w-full bg-gray-100"
               aria-label="Mapa de farmacias"
             />
+            {isGeocoding && ( // Mostrar overlay de carga sobre el mapa si aplica (o en otro lugar)
+              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                <div className="text-center">
+                   {/* Puedes usar un spinner aquí */}
+                  <p className="text-lg font-semibold text-gray-700 animate-pulse">Buscando ubicación...</p>
+                </div>
+              </div>
+            )}
           </div>
 
+
           {/* Lista de Farmacias */}
-          {loadingPharmacies && <p className="text-center text-gray-600 py-4">Cargando farmacias...</p>}
-          {errorPharmacies && <p className="text-center text-red-600 py-4">{errorPharmacies}</p>}
-          {!loadingPharmacies && !errorPharmacies && pharmacies.length === 0 && (
-              <p className="text-center text-gray-500 py-4">No hay farmacias disponibles.</p>
-          )}
-          {!loadingPharmacies && !errorPharmacies && pharmacies.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* ... (resto del código de renderizado de la lista, sin cambios significativos) ... */}
+          {/* Podrías añadir un indicador visual si isGeocoding es true y selectedPharmacyId coincide */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {pharmacies.map((pharmacy) => (
                 <div
                   key={`pharmacy-${pharmacy.id}`}
                   onClick={() => handlePharmacyClick(pharmacy)}
                   className={`bg-white rounded-lg border ${
                     selectedPharmacyId === pharmacy.id ? 'border-primary ring-2 ring-primary/50' : 'border-gray-200'
-                  } hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden`}
+                  } hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden ${isGeocoding && selectedPharmacyId === pharmacy.id ? 'opacity-50 cursor-wait' : ''}`} // <- Estilo de carga opcional
                   role="button"
-                  tabIndex={0} // Hacerlo enfocable
-                  onKeyPress={(e) => e.key === 'Enter' && handlePharmacyClick(pharmacy)} // Accesibilidad
+                  tabIndex={isGeocoding ? -1 : 0} // Deshabilitar tabulación mientras carga
+                  aria-disabled={isGeocoding && selectedPharmacyId === pharmacy.id} // Indicar que está deshabilitado temporalmente
+                  onKeyPress={(e) => !isGeocoding && e.key === 'Enter' && handlePharmacyClick(pharmacy)} // Accesibilidad
                 >
+                  {/* ... Contenido de la tarjeta de farmacia ... */}
                   <div className="p-4">
                     <h4 className="text-base font-semibold text-gray-800 truncate mb-2">{pharmacy.nombre}</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-start text-gray-600">
                         <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                        <span className="line-clamp-2">{pharmacy.ubicacion}</span> {/* Cortar texto largo */}
+                        {/* Mostrar siempre la dirección original */}
+                        <span className="line-clamp-2">{pharmacy.ubicacion}</span>
                       </div>
-                      <div className="flex items-center text-gray-600">
-                        <CalendarIcon className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
-                        <span>{pharmacy.horario_atencion || 'No especificado'}</span>
-                      </div>
-                      {pharmacy.telefono && (
-                           <div className="text-gray-600">
-                             Tel: {pharmacy.telefono}
-                           </div>
-                       )}
+                      {/* ... Resto de detalles (horario, teléfono) ... */}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-           )}
-        </div>
-      </div>
-    );
+          {/* ... (Cierre del renderPharmacyMap y del componente) ... */}
   };
 
-  // --- Switch Principal para Renderizado ---
+  // ... (Switch principal y exportación del componente) ...
   switch (view) {
     case 'appointments':
-      // Pasar props si AppointmentScheduler las necesita (e.g., patientId)
-      return <AppointmentScheduler /* patientId={patientId} */ />;
+      return <AppointmentScheduler />;
     case 'medications':
-      // Pasar props si Recetas las necesita (e.g., patientId)
-      return <Recetas /* patientId={patientId} */ />;
+      return <Recetas />;
     case 'pharmacies':
       return renderPharmacyMap();
-    // <<<--- 4. AÑADIDO CASO EREBUS ---
     case 'EREBUS':
-      // Pasar props si EREBUS las necesita (e.g., patientId)
-      return <EREBUS /* patientId={patientId} */ />;
-    // <<<--- 5. ELIMINADO CASO 'home' ---
-    // case 'home':
-    //   return renderHomeContent(); // Ya no se maneja aquí
-    // <<<--- 6. AÑADIDO DEFAULT ---
+      return <EREBUS />;
     default:
       console.warn(`ContentPanel recibió una vista desconocida: ${view}`);
       return (
